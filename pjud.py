@@ -27,8 +27,8 @@ time.sleep(1)
 
 driver.find_element(By.ID, "familiaTab").click()
 
-# Tiempo para abrir filtro manualmente
-time.sleep(10)
+time.sleep(1)
+driver.find_elements(By.CLASS_NAME, "switch")[6].click()
 
 # Selecciona todos los tipos de causas
 estadoCausas = Select(driver.find_element(By.ID, 'estadoCausaMisCauFam'))
