@@ -60,7 +60,7 @@ def busca_causa(causa, tribunal_en_lista, fur_en_lista):
     driver.find_element(By.ID, 'btnConsultaMisCauFam').click()
 
     # Espera el resultado
-    time.sleep(1)
+    time.sleep(2)
 
     furPJUD = ''
     tramite = ''
