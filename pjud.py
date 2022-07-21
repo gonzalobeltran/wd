@@ -17,8 +17,21 @@ def login(usuario, pwd):
     driver.find_element(By.ID, "login-submit").click()
     time.sleep(4)
 
+    # Cierra el modal de bienvenida si aparece
+    try:
+        driver.find_element(By.ID, 'btnEntendidoBienvenida').click()
+        time.sleep(1)
+    except:
+        pass
+
     driver.find_element(By.CLASS_NAME, "fa-university").click()
-    time.sleep(1)
+    time.sleep(2)
+
+    try:
+        driver.find_element(By.ID, 'btnEntendidoMisCausas').click()
+        time.sleep(1)
+    except:
+        pass
 
     driver.find_element(By.ID, "familiaTab").click()
     time.sleep(1)
@@ -33,7 +46,7 @@ def login(usuario, pwd):
 
 def logout():
     driver.find_element(By.XPATH, "//a[@onclick='salir();']").click()
-    time.sleep(1)
+    time.sleep(2)
 
 def nom_tribunal(t):
     res = t
@@ -91,32 +104,42 @@ def busca_causa(causa, tribunal_en_lista, fur_en_lista):
     if ultima[-1] != furPJUD:
         revisar.append('Revisar ' + causa + ': ' + tramite + ', ' + desc)
     else:
-        revisar.append('-')
+        revisar.append('')
 
-def revisa_abogado(usuario, pwd, lista):
+def revisa_abogado(usuario, pwd, lista, archivo):
+    rit = []
+    tribunal = []
+    ultima = []
+    ultimaPJUD = []
+    revisar = []
     login(usuario, pwd)
     for n in lista.index:
         busca_causa(lista['ROL/RIT'][n], lista['TRIBUNAL'][n], lista['FUR'][n])
     logout()
-    guarda_excel()
+    guarda_excel(archivo)
 
 def revisa_usuarios(lista):
+    rit = []
+    tribunal = []
+    ultima = []
+    ultimaPJUD = []
+    revisar = []
     for n in lista.index:
         login(lista['RUT_PATROCINADO'][n], lista['CLAVE'][n])
         busca_causa(lista['ROL/RIT'][n], lista['TRIBUNAL'][n], lista['FUR'][n])
         logout()
-    guarda_excel()
+    guarda_excel('Usuarios.xlsx')
 
-def guarda_excel():
+def guarda_excel(nombre):
     dict =  {'Rit': rit, 'Tribunal': tribunal, 'FUR': ultima, 'FUR PJUD': ultimaPJUD, 'Revisar': revisar}
     df = pd.DataFrame.from_dict(dict)
-    df.to_excel('revisar.xlsx')
+    df.to_excel(nombre)
 
-df = pd.read_excel('Carolina causas asignadas.xls','Asignadas')
+df = pd.read_excel('Carolina causas.xls','Asignadas')
 activas = df[df['T/V'].isin(['D', 'T/R', 'V'])]
 
-caro = activas[activas.ACCESO == 'CC']
 franco = activas[activas.ACCESO == 'FG']
+caro = activas[activas.ACCESO == 'CC']
 usuarios = activas[activas.ACCESO == 'U']
 
 rit = []
@@ -128,9 +151,9 @@ revisar = []
 driver = webdriver.Chrome()
 driver.maximize_window()
 
+# revisa_abogado('138245721', 'POllito-1010', caro, 'Caro.xlsx')
+# revisa_abogado('128622497', 'Catalinabarra2614.', franco, 'Franco.xlsx')
 revisa_usuarios(usuarios)
-revisa_abogado('138245721', 'POllito-1010', caro)
-revisa_abogado('128622497', 'Catalinabarra2614.', franco)
 
 driver.close()
 
