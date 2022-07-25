@@ -1,6 +1,5 @@
 
 import time, datetime
-from attr import attr, attrib
 import pandas as pd
 from openpyxl import load_workbook
 from selenium import webdriver
@@ -154,35 +153,41 @@ def revisa_usuarios(lista):
 def guarda_excel():
     wb.save('Carolina causas.xlsx')
 
-df = pd.read_excel('Carolina causas.xlsx','Asignadas')
-por_revisar = df[df['FUR PJUD'].isnull() & df['REVISAR'].isnull()]
-activas = por_revisar[por_revisar['T/V'].isin(['D', 'T/R', 'V'])]
-
-print(activas)
-
-caro = []
-franco = []
-usuarios = []
-
-for i in activas.index:
-    causa = Causa(i+2, activas['ROL/RIT'][i], activas['TRIBUNAL'][i], activas['ACCESO'][i], activas['RUT_PATROCINADO'][i], activas['CLAVE'][i], activas['FUR'][i])
-    if causa.acceso == 'CC':
-        caro.append(causa)
-    if causa.acceso == 'FG':
-        franco.append(causa)       
-    if causa.acceso == 'U':
-        usuarios.append(causa)
-
 wb = load_workbook(filename = 'Carolina causas.xlsx')
 hoja = wb['Asignadas']
 
-driver = webdriver.Chrome()
-driver.maximize_window()
+quedan = True
+while quedan:
+    df = pd.read_excel('Carolina causas.xlsx','Asignadas')
+    por_revisar = df[df['FUR PJUD'].isnull() & df['REVISAR'].isnull()]
+    activas = por_revisar[por_revisar['T/V'].isin(['D', 'T/R', 'V']) & por_revisar['ACCESO'].isin(['CC', 'FG', 'U'])]
 
-revisa_abogado('138245721', 'POllito-1010', caro)
-revisa_abogado('128622497', 'Catalinabarra2614.', franco)
-revisa_usuarios(usuarios)
+    if len(activas) == 0:
+        quedan = False
 
-driver.close()
+    caro = []
+    franco = []
+    usuarios = []
+
+    for i in activas.index:
+        causa = Causa(i+2, activas['ROL/RIT'][i], activas['TRIBUNAL'][i], activas['ACCESO'][i], activas['RUT_PATROCINADO'][i], activas['CLAVE'][i], activas['FUR'][i])
+        if causa.acceso == 'CC':
+            caro.append(causa)
+        if causa.acceso == 'FG':
+            franco.append(causa)       
+        if causa.acceso == 'U':
+            usuarios.append(causa)
+
+    driver = webdriver.Chrome()
+    driver.maximize_window()
+
+    try:
+        revisa_abogado('138245721', 'POllito-1010', caro)
+        revisa_abogado('128622497', 'Catalinabarra2614.', franco)
+        revisa_usuarios(usuarios)
+    except:
+        pass
+
+    driver.close()
 
 
