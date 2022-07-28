@@ -8,16 +8,6 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.select import Select
 
-class Causa:
-    def __init__(self, fila, rit, tribunal, acceso, rut, clave, fur):
-        self.fila = fila
-        self.rit = rit
-        self.tribunal = tribunal
-        self.acceso = acceso
-        self.rut = rut
-        self.clave = clave
-        self.fur = fur
-
 def login(usuario, pwd):
     driver.get("https://oficinajudicialvirtual.pjud.cl/home/index.php")
     
@@ -35,7 +25,6 @@ def login(usuario, pwd):
     except:
         pass
     else:
-        print('Error')
         return(False)
 
     # Cierra el modal de bienvenida si aparece
@@ -88,7 +77,7 @@ def nom_tribunal(t):
     return(res)
 
 def busca_causa(causa):
-    partes = causa.rit.split('-')
+    partes = causa['ROL/RIT'].split('-')
     # Ingresa la causa a buscar
     Select(driver.find_element(By.ID, 'tipoMisCauFam')).select_by_value(partes[0])
     driver.find_element(By.ID, 'rolMisCauFam').clear()
@@ -112,7 +101,7 @@ def busca_causa(causa):
         tds = row.find_elements(By.TAG_NAME, 'td')
         if len(tds) == 7:
             tribunal_en_tabla = nom_tribunal(tds[2].text.strip())
-            if tribunal_en_tabla == causa.tribunal:
+            if tribunal_en_tabla == causa['TRIBUNAL']:
                 tds[0].find_element(By.TAG_NAME, 'a').click()
                 WebDriverWait(driver, 30).until(EC.visibility_of_element_located((By.ID, 'movimientoFam')))
                 cols = driver.find_elements(By.XPATH, "//div[@id='movimientoFam']/div/div/table/tbody/tr/td")
@@ -124,30 +113,30 @@ def busca_causa(causa):
                 driver.find_element(By.CLASS_NAME, 'close').click()  
                 time.sleep(1)                
     
-    if causa.fur != furPJUD:
+    if causa['FUR'] != furPJUD:
         revisar = tramite + ', ' + desc
-    hoja.cell(causa.fila, 15, furPJUD)
-    hoja.cell(causa.fila, 16, revisar)
+    hoja.cell(causa.name+2, 15, furPJUD)
+    hoja.cell(causa.name+2, 16, revisar)
     guarda_excel()
 
 def revisa_abogado(usuario, pwd, lista):
     if len(lista) == 0:
         return
     login(usuario, pwd)
-    for causa in lista:
+    for causa in lista.iloc:
         busca_causa(causa)
     logout()
 
 def revisa_usuarios(lista):
     if len(lista) == 0:
         return
-    for causa in lista:
-        res = login(causa.rut, causa.clave)
+    for causa in lista.iloc:
+        res = login(causa['RUT_PATROCINADO'], causa['CLAVE'])
         if (res):
             busca_causa(causa)
             logout()
         else:
-            hoja.cell(causa.fila, 16, 'Clave incorrecta')
+            hoja.cell(causa.name+2, 16, 'Clave incorrecta')
             guarda_excel()
 
 def guarda_excel():
@@ -156,27 +145,18 @@ def guarda_excel():
 wb = load_workbook(filename = 'Carolina causas.xlsx')
 hoja = wb['Asignadas']
 
-quedan = True
-while quedan:
+vueltas = 0
+while True:
     df = pd.read_excel('Carolina causas.xlsx','Asignadas')
     por_revisar = df[df['FUR PJUD'].isnull() & df['REVISAR'].isnull()]
     activas = por_revisar[por_revisar['T/V'].isin(['D', 'T/R', 'V']) & por_revisar['ACCESO'].isin(['CC', 'FG', 'U'])]
 
     if len(activas) == 0:
-        quedan = False
+        break
 
-    caro = []
-    franco = []
-    usuarios = []
-
-    for i in activas.index:
-        causa = Causa(i+2, activas['ROL/RIT'][i], activas['TRIBUNAL'][i], activas['ACCESO'][i], activas['RUT_PATROCINADO'][i], activas['CLAVE'][i], activas['FUR'][i])
-        if causa.acceso == 'CC':
-            caro.append(causa)
-        if causa.acceso == 'FG':
-            franco.append(causa)       
-        if causa.acceso == 'U':
-            usuarios.append(causa)
+    caro = activas[activas['ACCESO'] == 'CC']
+    franco = activas[activas['ACCESO'] == 'FG']
+    usuarios = activas[activas['ACCESO'] == 'U']
 
     driver = webdriver.Chrome()
     driver.maximize_window()
@@ -188,6 +168,8 @@ while quedan:
     except:
         pass
 
+    vueltas += 1
     driver.close()
 
+print(vueltas)
 
